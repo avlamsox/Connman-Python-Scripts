@@ -1,0 +1,51 @@
+#!/usr/bin/python
+
+import sys
+import dbus
+
+if (len(sys.argv) >= 3 and len(sys.argv) != 2 and sys.argv[1] == "" and sys.argv[2] == ""):
+	print "%s" % (sys.argv[0])
+	sys.exit(1)
+elif (len(sys.argv) < 2):
+	print "Usage: %s [type<wifi>/<p2p> <1 = enable/0 = disable>]" % (sys.argv[0])
+	sys.exit(1)
+
+bus = dbus.SystemBus()
+
+manager = dbus.Interface(bus.get_object('net.connman', "/"),
+					'net.connman.Manager')
+
+def technology_enable_wifi_p2p(path, tech_type, switch):
+	tech = dbus.Interface(bus.get_object("net.connman", path),
+						"net.connman.Technology")
+	properties = tech.GetProperties()
+
+	for key in properties.keys():
+		if key in ["Type"]:
+			if properties[key] == tech_type:
+				if (switch == '1'):
+					print "Enabling %s " % tech_type
+					tech.SetProperty("Powered", dbus.Boolean(1))
+				elif (switch == '0'):
+					print "Disabling %s " % tech_type
+					tech.SetProperty("Powered", dbus.Boolean(0))
+		
+				return tech_type
+			else:
+				return None
+
+technologies = manager.GetTechnologies()
+tech = None
+
+for path,_ in technologies:
+	if (len(sys.argv) == 3):
+		tech = technology_enable_wifi_p2p(path,
+					sys.argv[1], sys.argv[2])
+	else:
+		tech = technology_enable_wifi_p2p(path, sys.argv[1], "")
+
+	if tech != None:
+		break;
+
+if tech == None:
+	print "Failed to enable %s " % (sys.argv[0])
